@@ -833,9 +833,9 @@ local script = G2L["16"];
 	
 	local isOn = false
 	local originalColor = uiStroke.Color
-	local lastDrill = nil -- Stores the last drill you had to avoid rebuying
+	local lastDrill = nil  -- Variable to remember the last drill equipped or bought
 	
-	-- Drill tiers
+	-- Drill tiers (excluding Standard Hand Drill)
 	local drillTiers = {
 		"Reinforced Hand Drill",
 		"Twin Hand Drill",
@@ -860,7 +860,7 @@ local script = G2L["16"];
 		{ min = 5000000, max = math.huge }
 	}
 	
-	-- Find correct drill tier by Cash
+	-- Get drill index based on Cash
 	local function getDrillIndex(cashValue)
 		for i, range in ipairs(drillRanges) do
 			if cashValue >= range.min and cashValue <= range.max then
@@ -870,7 +870,7 @@ local script = G2L["16"];
 		return nil
 	end
 	
-	-- Check if player already has a drill of this tier or better
+	-- Check if player has the drill or better (Backpack or Character)
 	local function hasDrillOrBetter(index)
 		local char = player.Character or player.CharacterAdded:Wait()
 		for i = index, #drillTiers do
@@ -882,7 +882,7 @@ local script = G2L["16"];
 		return false
 	end
 	
-	-- Get currently equipped drill (if any)
+	-- Get currently equipped drill (if any) from Character or Backpack
 	local function getEquippedDrill()
 		local char = player.Character or player.CharacterAdded:Wait()
 		for _, tool in pairs(char:GetChildren()) do
@@ -897,21 +897,13 @@ local script = G2L["16"];
 		return nil
 	end
 	
-	-- Equip drill from backpack
-	local function equipDrill(name)
-		local tool = backpack:FindFirstChild(name)
-		if tool then
-			tool.Parent = player.Character
-		end
-	end
-	
-	-- Buy drill and auto-equip
+	-- Buy drill
 	local function buyDrill(drillName)
 		local char = player.Character or player.CharacterAdded:Wait()
 		local hrp = char:WaitForChild("HumanoidRootPart")
 		local oldPos = hrp.Position
 	
-		-- Notify about unequipping
+		-- Notify if something is about to be unequipped
 		local equipped = getEquippedDrill()
 		if equipped then
 			starterGui:SetCore("SendNotification", {
@@ -924,7 +916,7 @@ local script = G2L["16"];
 		-- Teleport to shop
 		hrp.CFrame = CFrame.new(Vector3.new(-397, 92, 297))
 	
-		-- Fire drill purchase
+		-- Buy the drill
 		local args = { drillName }
 		game:GetService("ReplicatedStorage")
 			:WaitForChild("Packages")
@@ -942,27 +934,20 @@ local script = G2L["16"];
 			Duration = 3
 		})
 	
-		-- Wait until tool is in Backpack, then equip
-		local timeout = 5
-		while not backpack:FindFirstChild(drillName) and timeout > 0 do
-			task.wait(0.5)
-			timeout -= 0.5
-		end
-		equipDrill(drillName)
-	
-		-- Save last drill
+		-- Store last bought drill
 		lastDrill = drillName
 	
-		-- Return to previous position
-		task.wait(2)
+		-- Wait 2 seconds, then teleport back
+		task.wait(1.5)
 		hrp.CFrame = CFrame.new(oldPos)
 	end
 	
-	-- Main loop
+	-- Loop to monitor cash and drill state
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			local index = getDrillIndex(cash.Value)
+			-- Only buy if the toggle is ON, and the player doesn't have that drill already
 			if index and isOn and not hasDrillOrBetter(index) and (lastDrill ~= drillTiers[index]) then
 				local drillName = drillTiers[index]
 				buyDrill(drillName)
@@ -1793,4 +1778,4 @@ local script = G2L["51"];
 end;
 task.spawn(C_51);
 
-return G2L["1"], require;
+return G2L["1"], require;   
